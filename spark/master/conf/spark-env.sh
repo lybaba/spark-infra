@@ -1,0 +1,1 @@
+SPARK_MASTER_OPTS="-Dspark.deploy.defaultCores=4"

@@ -7,52 +7,97 @@ services:
   spark-master:
     build:
       context: ./spark
-      dockerfile: ./Dockerfile
-    container_name: "spark-master"
+      dockerfile: ./master/Dockerfile
+    container_name: spark-master
+    hostname: spark-master
     environment:
+      - SPARK_CONF_DIR=/conf
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
-      - SPARK_LOCAL_IP=spark-master
-      - SPARK_LOCAL_HOST=spark-master
       - SPARK_WORKLOAD=master
+      - SPARK_PUBLIC_DNS=172.17.173.154
+    expose:
+      - 7001
+      - 7002
+      - 7003
+      - 7004
+      - 7005
+      - 8080
+      - 7077
+      - 4040
+      - 6066
     ports:
-      - '7077:7077'
-      - '8080:8080'
+      - target: 8080
+        published: 8080
+        mode: host
+      
+      - target: 7077
+        published: 7077
+        mode: host
+
+      - target: 4040
+        published: 4040
+        mode: host
+
+      - target: 6066
+        published: 6066
+        mode: host
+    volumes:
+      - ./spark/master/conf:/conf
+      - ./data:/tmp/data
+    extra_hosts:
+       - "host.docker.internal:192.168.1.30"
+       - "iakdev1:172.17.173.154"
     networks:
       - spark_network
 
   spark-worker-1:
-    image: docker.io/bitnami/spark:3.3
-    container_name: "spark-worker-1"
-    ports:
-      - "9091:8080"
-      - "7000:7000"
+    build:
+      context: ./spark
+      dockerfile: ./worker/Dockerfile
+    container_name: spark-worker-1
+    hostname: spark-worker-1
     depends_on:
       - spark-master
     environment:
+      - SPARK_CONF_DIR=/conf
       - SPARK_MODE=worker
-      - SPARK_MASTER=spark://spark-master:7077
-      - SPARK_WORKER_CORES=1
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_DRIVER_MEMORY=1G
-      - SPARK_EXECUTOR_MEMORY=1G
-      - SPARK_WORKLOAD=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
-      - SPARK_LOCAL_IP=spark-worker-1
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_PORT=8881
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_PUBLIC_DNS=172.17.173.154
+    links:
+      - spark-master
+    expose:
+      - 7012
+      - 7013
+      - 7014
+      - 7015
+      - 8881
+      - 8081
+    ports:
+      - target: 8081
+        published: 8081
+        mode: host
+    volumes:
+      - ./spark/worker/conf:/conf
+      - ./data:/tmp/data
+    extra_hosts:
+       - "host.docker.internal:192.168.1.30"
+       - "iakdev1:172.17.173.154"
     networks:
       - spark_network
 
 networks:
   spark_network:
-    driver: bridge
-    name: spark_network
-
-
